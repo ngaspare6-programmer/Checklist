@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Checklist">
+<meta name="theme-color" content="#1B2340">
+<title>Checklist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --notte:#1B2340; --notte2:#2E3766; --luna:#F1EEFF;
+    --alba:#FFE3B3; --cielo:#9FCBFF;
+    --verde:#166534; --su-verde:#fff;
+    --ink:#1B2340; --muted:rgba(27,35,64,.62);
+    --riga:rgba(255,255,255,.62); --msg:rgba(255,255,255,.82); --linea:rgba(27,35,64,.12);
+    --piu-bg:#1B2340; --piu-ink:#fff;
+    --sheet:#FFFBF4; --chip:#F1EBE0; --campo:#fff; --campo-bordo:#E5DDCF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{min-height:100%}
+  body{font:16px/1.5 Inter,system-ui,-apple-system,sans-serif;color:var(--ink);background:var(--notte);min-height:100dvh}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .serif{font-family:Fraunces,Georgia,serif;font-weight:600}
+
+  /* sfondi */
+  body.v-login{background:linear-gradient(#FFE3B3 0%,#9FCBFF 48%,#2E3766 52%,#1B2340 100%) fixed}
+  body.v-giorno{background:linear-gradient(170deg,#FFE8C2,#B9DAFF) fixed}
+  body.v-sera{
+    background:linear-gradient(170deg,#2E3766,#1B2340) fixed;
+    --ink:#F1EEFF; --muted:rgba(241,238,255,.66);
+    --riga:rgba(255,255,255,.08); --msg:rgba(255,255,255,.1); --linea:rgba(241,238,255,.14);
+    --verde:#22C55E; --su-verde:#052E16;          /* verde più chiaro di sera: si stacca dal blu notte */
+    --piu-bg:#F1EEFF; --piu-ink:#1B2340;
+    --sheet:#232B4D; --chip:rgba(255,255,255,.09); --campo:#1B2340; --campo-bordo:rgba(241,238,255,.2);
+  }
+
+  .col{max-width:480px;margin:0 auto;min-height:100dvh;padding:calc(14px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom))}
+  .top{display:flex;justify-content:space-between;align-items:center;font-size:14px;min-height:36px}
+  .top .link{font-weight:600;padding:6px 2px}
+
+  /* login */
+  .login{display:flex;flex-direction:column;justify-content:center;gap:14px;min-height:calc(100dvh - 60px)}
+  .card{background:rgba(255,251,244,.94);color:#1B2340;border-radius:22px;padding:22px 18px;display:flex;flex-direction:column;gap:12px;box-shadow:0 10px 30px rgba(27,35,64,.18)}
+  .card h1{font-size:34px;line-height:1.05}
+  .card p{font-size:14px;color:rgba(27,35,64,.7)}
+  .lab{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .card .lab{color:rgba(27,35,64,.62)}
+  input{font:inherit;font-size:16px;width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--campo-bordo);background:var(--campo);color:var(--ink);outline:none}
+  .card input{border-color:#E5DDCF;background:#fff;color:#1B2340}
+  input:focus{border-color:var(--verde);box-shadow:0 0 0 3px rgba(34,197,94,.22)}
+  .btn{background:var(--verde);color:var(--su-verde);font-weight:700;padding:14px;border-radius:14px;text-align:center;width:100%}
+  .card .btn{background:#166534;color:#fff}
+  .btn:disabled{opacity:.4}
+  .err{color:#B42318;font-size:14px;min-height:1em}
+  .prova{font-size:12px;background:rgba(255,255,255,.8);color:#1B2340;border-radius:10px;padding:8px 10px;text-align:center}
+
+  /* partenza */
+  .home{min-height:100dvh;display:flex;flex-direction:column;position:relative}
+  .home .top{position:absolute;left:0;right:0;top:0;max-width:480px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top)) 16px 0;color:#1B2340;z-index:2}
+  .meta{flex:1;display:flex;flex-direction:column;justify-content:space-between;text-align:left;padding:calc(64px + env(safe-area-inset-top)) 24px 26px}
+  .meta.g{background:linear-gradient(#FFE3B3,#9FCBFF);color:#1B2340}
+  .meta.s{background:linear-gradient(#2E3766,#1B2340);color:#F1EEFF;padding-top:26px;padding-bottom:calc(26px + env(safe-area-inset-bottom))}
+  .meta .ic{font-size:40px;line-height:1}
+  .meta b{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:52px;line-height:1;display:block}
+  .meta small{font-size:14px;opacity:.8}
+  .meta:active{filter:brightness(1.04)}
+  .home .inner{max-width:480px;width:100%;margin:0 auto;display:flex;flex-direction:column;justify-content:space-between;flex:1}
+
+  /* settori */
+  h2.saluto{font-size:34px;line-height:1.1;margin:6px 0 14px}
+  .grp{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 4px 6px}
+  .settore{background:var(--riga);border-radius:16px;margin-bottom:8px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+  .row{display:flex;align-items:center;gap:8px;padding:10px 10px 10px 14px}
+  .nm{flex:1;text-align:left;font-weight:600;font-size:16px;padding:4px 0}
+  .nm small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+  .cnt{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:26px;min-width:34px;text-align:center}
+  .cnt.z{opacity:.35}
+  .tondo{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:22px;font-weight:600;flex:none}
+  .piu{background:var(--piu-bg);color:var(--piu-ink)}
+  .meno{border:1.5px solid currentColor;opacity:.75}
+  .aperto{padding:0 12px 12px}
+  .msg{background:var(--msg);border-radius:12px;padding:12px;font-size:14px;line-height:1.5;white-space:pre-wrap}
+  .copia{margin-top:10px;background:var(--verde);color:var(--su-verde);font-weight:600;font-size:14px;padding:8px 14px;border-radius:999px}
+  .elenco{margin-top:10px}
+  .ct{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:7px 2px;border-top:1px solid var(--linea)}
+  .ct .t{color:var(--muted);flex:none}
+  .ct.no .chi{text-decoration:line-through;opacity:.55}
+  .vuoto{font-size:13px;color:var(--muted);padding:8px 2px}
+
+  /* foglio (+ e −) */
+  .velo{position:fixed;inset:0;background:rgba(27,35,64,.4);z-index:10}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:11;background:var(--sheet);color:var(--ink);border-radius:22px 22px 0 0;max-width:480px;margin:0 auto;padding:20px 16px calc(22px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;max-height:85dvh;overflow:auto}
+  .sheet h3{font-size:18px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{background:var(--chip);padding:9px 13px;border-radius:999px;font-size:14px}
+  .chip.on{background:var(--piu-bg);color:var(--piu-ink)}
+  .scelta{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;padding:12px;border-radius:12px;background:var(--chip);font-size:15px}
+  .scelta small{display:block;font-size:12px;color:var(--muted)}
+  .scelta .az{font-weight:600;font-size:13px;flex:none}
+  .annulla{font-weight:600;padding:10px;text-align:center;color:var(--muted)}
+  .riga-scelta{display:flex;align-items:center;gap:6px}
+  .riga-scelta .scelta{flex:1}
+  .cestino{width:36px;height:36px;border-radius:50%;display:inline-grid;place-items:center;flex:none;color:var(--muted);vertical-align:middle;margin:-8px -6px -8px 2px}
+  .cestino:active{background:var(--chip)}
+  .ct{align-items:center}
+  .totale{text-decoration:underline;text-underline-offset:3px}
+
+  .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1B2340;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;z-index:20;box-shadow:0 6px 20px rgba(0,0,0,.25);white-space:nowrap}
+  body.v-sera .toast{background:#F1EEFF;color:#1B2340}
+  .attesa{display:grid;place-items:center;min-height:100dvh;color:#F1EEFF;font-family:Fraunces,Georgia,serif;font-size:22px}
+</style>
+</head>
+<body class="v-login">
+<div id="app"><div class="attesa">Checklist</div></div>
+
+<script>
+/* ===== Settori e messaggi (da Checklist/checklist-messaggi.md) ===== */
+const SETTORI = [
+  { id:"palestra", nome:"Palestra", sub:"personal trainer",
+    msg:"sono Gaspare, sviluppatore della zona. Ho creato un'app per personal trainer: la scheda arriva sul telefono dell'atleta, lui segna i carichi e tu vedi chi si allena e come migliora. Prima di lanciarla sto chiedendo a qualche trainer 15 minuti, anche in videochiamata, per un parere sincero. Ti andrebbe? Nessun impegno.", nome_in:true },
+  { id:"ingrosso", nome:"Ingrosso", sub:"negozi all'ingrosso",
+    msg:"sono Gaspare, sviluppatore della zona. Ho creato uno strumento per fare i preventivi in negozio dal telefono: scegli i capi dal catalogo, la stampa e le quantità, e il preventivo arriva al cliente in PDF in un minuto. Prima di lanciarlo sto chiedendo a qualche negozio all'ingrosso 15 minuti per un parere sincero: non vendo niente adesso. Posso passare io o fare una videochiamata, quando vi è più comodo." },
+  { gruppo:"Ditte" },
+  { id:"elettricisti", nome:"Elettricisti",
+    msg:"sono Gaspare, sviluppatore della zona. Ho creato un'app per fare il preventivo dell'impianto elettrico dal telefono, stanza per stanza: punti luce, prese, quadro, con i prezzi già dentro. Finito il sopralluogo, il cliente ha il PDF prima che tu riparta. Sto chiedendo a qualche elettricista 15 minuti per un parere sincero: ti andrebbe di vederla?" },
+  { id:"idraulici", nome:"Idraulici",
+    msg:"sono Gaspare, sviluppatore della zona. Ho creato un'app per fare il preventivo idraulico dal telefono, stanza per stanza: apparecchi, attacchi e tipo di lavoro, con i prezzi già dentro. Il cliente riceve il PDF subito, durante il sopralluogo. Sto chiedendo a qualche idraulico 15 minuti per un parere sincero: ti andrebbe di vederla?" },
+  { id:"arredamento", nome:"Arredamento",
+    msg:"sono Gaspare, sviluppatore della zona. Ho creato un'app per fare il preventivo dell'arredamento dal telefono, stanza per stanza, a pezzi e misure, con i modelli presi dai cataloghi. Il cliente riceve il PDF prima che tu esca di casa sua. Sto chiedendo a qualche arredatore 15 minuti per un parere sincero: ti andrebbe di vederla?" },
+  { id:"imprese", nome:"Imprese", sub:"più mestieri",
+    msg:"sono Gaspare, sviluppatore della zona. Ho creato un'app per le imprese che fanno più lavori nella stessa casa: impianto elettrico, idraulica e arredamento entrano stanza per stanza in un preventivo unico, e il cliente lo riceve in PDF dal telefono. Sto chiedendo a qualche impresa 15 minuti per un parere sincero: posso farvela vedere?" },
+  { gruppo:"Siti" },
+  { id:"siti", nome:"Siti", sub:"hotel, B&B, attività",
+    msg:"sono Gaspare di GPN Lab. Ho guardato il vostro sito: [dettaglio vero]. Faccio siti nuovi e restyling per hotel e attività, pensati per portare prenotazioni dirette. Vi va se in 10 minuti vi faccio vedere un esempio di come potrebbe diventare il vostro?" },
+];
+const TIPI = ["Instagram","Facebook","WhatsApp","Telefono","Altro"];
+const saluto = m => m === "giorno" ? "Buongiorno" : "Buonasera";
+function testo(s, m){ return `${saluto(m)}${s.nome_in ? " [Nome]" : ""}, ${s.msg}`; }
+
+/* ===== Dati: solo su questo telefono (memoria di Safari) =====
+   Nel codice non c'è niente di privato: né contatti né PIN.
+   Il PIN si sceglie alla prima apertura e sul telefono se ne salva solo l'impronta (SHA-256), non il numero. */
+const KD = "checklist-contatti", KP = "checklist-pin", KU = "checklist-uscita";
+const BLOCCO = 10 * 60 * 1000;   // fuori dall'app più di 10 minuti → richiede il PIN
+function leggi(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } }
+function scrivi(k,v){ try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e){ return false; } }
+
+const db = {
+  dati(){ return leggi(KD) || []; },
+  async elenco(){ return this.dati(); },
+  async aggiungi(c){
+    const d = this.dati(); const n = { ...c, id:String(Date.now()), creato:new Date().toISOString(), esito:"attesa" };
+    d.push(n); if(!scrivi(KD, d)) throw new Error("memoria"); return n;
+  },
+  async esito(id, esito){
+    const d = this.dati(); const c = d.find(x => x.id === id); if(c) c.esito = esito;
+    if(!scrivi(KD, d)) throw new Error("memoria"); return c;
+  },
+  async togli(id){
+    const d = this.dati().filter(x => x.id !== id);
+    if(!scrivi(KD, d)) throw new Error("memoria");
+  },
+};
+
+/* ===== Esporta: un file CSV con tutti i contatti (si apre con Excel o Numbers) ===== */
+const dataFile = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
+function csv(lista){
+  const q = v => { let s = String(v ?? ""); if(/^[=+\-@]/.test(s)) s = "'" + s; return `"${s.replace(/"/g, '""')}"`; };  // niente formule nascoste nel foglio
+  const righe = [["Data","Ora","Momento","Settore","Tipo","Nome","Esito"]];
+  for(const c of lista) righe.push([
+    new Date(c.creato).toLocaleDateString("it-IT"), ora(c.creato), c.momento === "giorno" ? "Giorno" : "Sera",
+    settore(c.settore)?.nome || c.settore, c.tipo, c.nome, c.esito === "no" ? "no" : "contattato" ]);
+  return "﻿" + righe.map(r => r.map(q).join(";")).join("\r\n");
+}
+async function esporta(){
+  const lista = db.dati();
+  if(!lista.length){ toast("Nessun contatto da esportare"); return; }
+  const nome = `checklist-${dataFile()}.csv`;
+  const file = new File([csv(lista)], nome, { type:"text/csv" });
+  if(navigator.canShare && navigator.canShare({ files:[file] })){
+    try { await navigator.share({ files:[file], title:"Checklist" }); return; }
+    catch(e){ if(e.name === "AbortError") return; }
+  }
+  const url = URL.createObjectURL(file), a = document.createElement("a");
+  a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+async function impronta(pin){
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("checklist:" + pin));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("");
+}
+
+/* ===== Stato ===== */
+const S = { vista:"attesa", momento:"giorno", aperto:null, contatti:[], foglio:null, tipo:null, err:"", pin1:null };
+
+const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const oggi = iso => new Date(iso).toDateString() === new Date().toDateString();
+const ora = iso => new Date(iso).toLocaleTimeString("it-IT", { hour:"2-digit", minute:"2-digit" });
+const giorno = iso => new Date(iso).toLocaleDateString("it-IT", { weekday:"short", day:"numeric", month:"short" });
+const diOggi = (sid, m) => S.contatti.filter(c => c.settore === sid && c.momento === m && oggi(c.creato));
+const conta = (sid, m) => diOggi(sid, m).filter(c => c.esito !== "no").length;
+const totale = m => S.contatti.filter(c => oggi(c.creato) && c.esito !== "no" && (!m || c.momento === m)).length;
+const settore = id => SETTORI.find(s => s.id === id);
+
+let toastT;
+function toast(t){
+  document.querySelector(".toast")?.remove();
+  const el = document.createElement("div"); el.className = "toast"; el.textContent = t;
+  document.body.appendChild(el); clearTimeout(toastT); toastT = setTimeout(() => el.remove(), 2200);
+}
+
+/* ===== Disegno ===== */
+const app = document.getElementById("app");
+function disegna(){
+  const v = S.vista;
+  document.body.className = v === "settori" ? `v-${S.momento}` : (v === "home" ? "v-home" : "v-login");
+  document.querySelector('meta[name="theme-color"]').content = (v === "settori" && S.momento === "giorno") ? "#FFE8C2" : (v === "home" ? "#FFE3B3" : "#1B2340");
+  if(v === "attesa") app.innerHTML = `<div class="attesa">Checklist</div>`;
+  if(v === "login") app.innerHTML = vLogin();
+  if(v === "home") app.innerHTML = vHome() + vFoglio();
+  if(v === "settori") app.innerHTML = vSettori() + vFoglio();
+}
+
+function vLogin(){
+  const fase = !leggi(KP) ? (S.pin1 ? "conferma" : "nuovo") : "entra";
+  const testi = {
+    nuovo:   ["Scegli un PIN di 4–8 cifre. Te lo chiede quando apri l'app.", "Avanti"],
+    conferma:["Scrivi di nuovo il PIN per conferma.", "Salva il PIN"],
+    entra:   ["I contatti di ogni giorno.", "Entra"],
+  }[fase];
+  return `<div class="col"><form class="login" data-form="pin" data-fase="${fase}">
+    <div class="card">
+      <h1 class="serif">Checklist</h1>
+      <p>${testi[0]}</p>
+      <label class="lab" for="pin">PIN</label>
+      <input id="pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" required autofocus>
+      <div class="err">${esc(S.err)}</div>
+      <button class="btn" type="submit">${testi[1]}</button>
+      ${fase === "entra" ? `<button type="button" class="annulla" data-act="dimenticato">Ho dimenticato il PIN</button>` : ""}
+    </div>
+  </form></div>`;
+}
+
+function vHome(){
+  const d = new Date().toLocaleDateString("it-IT", { weekday:"short", day:"numeric", month:"short" });
+  const tg = totale("giorno"), ts = totale("sera");
+  return `<div class="home">
+    <div class="top"><span><b>Oggi</b> · ${esc(d)}</span><span><button class="link totale" data-act="oggi">${tg+ts} ${tg+ts===1?"contatto":"contatti"} ›</button> · <button class="link" data-act="esci">Blocca</button></span></div>
+    <button class="meta g" data-act="momento" data-m="giorno"><span class="inner"><span class="ic">☀︎</span><span><b>Giorno</b><small>${tg} ${tg===1?"contatto":"contatti"} oggi</small></span></span></button>
+    <button class="meta s" data-act="momento" data-m="sera"><span class="inner"><span class="ic">☾</span><span><b>Sera</b><small>${ts} ${ts===1?"contatto":"contatti"} oggi</small></span></span></button>
+  </div>`;
+}
+
+function vSettori(){
+  const m = S.momento;
+  let h = `<div class="col">
+    <div class="top"><button class="link" data-act="home">‹ ${m === "giorno" ? "Giorno" : "Sera"}</button><span>${totale(m)} oggi</span></div>
+    <h2 class="saluto serif">${saluto(m)}.</h2>`;
+  for(const s of SETTORI){
+    if(s.gruppo){ if(s.gruppo !== "Siti") h += `<div class="grp">${esc(s.gruppo)}</div>`; else h += `<div class="grp"> </div>`; continue; }
+    const c = conta(s.id, m), aperto = S.aperto === s.id;
+    h += `<div class="settore">
+      <div class="row">
+        <button class="nm" data-act="apri" data-s="${s.id}" aria-expanded="${aperto}">${esc(s.nome)}${s.sub ? `<small>${esc(s.sub)}</small>` : ""}</button>
+        <div class="cnt ${c ? "" : "z"}" aria-label="${c} contatti oggi">${c}</div>
+        <button class="tondo meno" data-act="meno" data-s="${s.id}" aria-label="Risposta negativa">−</button>
+        <button class="tondo piu" data-act="piu" data-s="${s.id}" aria-label="Nuovo contatto">+</button>
+      </div>`;
+    if(aperto){
+      const lista = diOggi(s.id, m).slice().reverse();
+      h += `<div class="aperto">
+        <div class="msg">${esc(testo(s, m))}<br><button class="copia" data-act="copia" data-s="${s.id}">Copia messaggio</button></div>
+        <div class="elenco">${lista.length ? lista.map(x => `<div class="ct ${x.esito === "no" ? "no" : ""}"><span class="chi">${esc(x.tipo)} · ${esc(x.nome)}</span><span class="t">${x.esito === "no" ? "no · " : ""}${ora(x.creato)}${x.esito === "no" ? cestino(x) : ""}</span></div>`).join("") : `<div class="vuoto">Ancora nessun contatto oggi.</div>`}</div>
+      </div>`;
+    }
+    h += `</div>`;
+  }
+  return h + `</div>`;
+}
+
+const cestino = c => `<button class="cestino" data-act="togli" data-id="${esc(c.id)}" aria-label="Togli ${esc(c.nome)} dallo storico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button>`;
+
+function vFoglio(){
+  if(!S.foglio) return "";
+  if(S.foglio.tipo === "oggi"){
+    const lista = S.contatti.filter(c => oggi(c.creato) && c.esito !== "no");
+    return `<div class="velo" data-act="chiudi"></div>
+    <div class="sheet" role="dialog" aria-label="Contatti di oggi">
+      <h3>Contatti di oggi</h3>
+      <div class="elenco">${lista.length ? lista.map(c => `<div class="ct"><span class="chi">${esc(c.nome)} – ${esc(settore(c.settore)?.nome || c.settore)}</span><span class="t">${ora(c.creato)}</span></div>`).join("") : `<div class="vuoto">Ancora nessun contatto oggi.</div>`}</div>
+      <button class="btn" data-act="esporta">Esporta tutti i contatti</button>
+      <div class="vuoto" style="padding-top:0">Un file con tutti i contatti salvati, di tutti i giorni: si apre con Excel o Numbers. Tienilo come copia se cambi telefono.</div>
+      <button class="annulla" data-act="chiudi">Chiudi</button>
+    </div>`;
+  }
+  const s = settore(S.foglio.s);
+  if(S.foglio.tipo === "piu"){
+    return `<div class="velo" data-act="chiudi"></div>
+    <form class="sheet" data-form="nuovo" role="dialog" aria-label="Nuovo contatto">
+      <h3>Nuovo contatto · ${esc(s.nome)}</h3>
+      <div class="lab">Tipo di contatto</div>
+      <div class="chips">${TIPI.map(t => `<button type="button" class="chip ${S.tipo === t ? "on" : ""}" data-act="tipo" data-t="${t}">${t}</button>`).join("")}</div>
+      <label class="lab" for="nome">Nome</label>
+      <input id="nome" name="nome" maxlength="80" placeholder="Persona o azienda" autocomplete="off" required>
+      <button class="btn" type="submit" ${S.tipo ? "" : "disabled"}>Salva · contatore +1</button>
+      <button type="button" class="annulla" data-act="chiudi">Annulla</button>
+    </form>`;
+  }
+  // meno: chi ha risposto di no (ultimi 30 giorni, giorno e sera)
+  const limite = Date.now() - 30*864e5;
+  const lista = S.contatti.filter(c => c.settore === s.id && new Date(c.creato).getTime() > limite).slice().reverse();
+  return `<div class="velo" data-act="chiudi"></div>
+  <div class="sheet" role="dialog" aria-label="Risposta negativa">
+    <h3>Chi ha detto no? · ${esc(s.nome)}</h3>
+    <div class="lab">Tocca il contatto: non conta più</div>
+    ${lista.length ? lista.map(c => `<div class="riga-scelta"><button class="scelta" data-act="no" data-id="${esc(c.id)}">
+        <span><span style="${c.esito === "no" ? "text-decoration:line-through;opacity:.55" : ""}">${esc(c.tipo)} · ${esc(c.nome)}</span><small>${giorno(c.creato)} · ${c.momento === "giorno" ? "Giorno" : "Sera"}</small></span>
+        <span class="az">${c.esito === "no" ? "Annulla il no" : "No"}</span></button>${c.esito === "no" ? cestino(c) : ""}</div>`).join("")
+      : `<div class="vuoto">Nessun contatto negli ultimi 30 giorni.</div>`}
+    <button class="annulla" data-act="chiudi">Chiudi</button>
+  </div>`;
+}
+
+/* ===== Azioni ===== */
+async function carica(){
+  S.contatti = await db.elenco(); if(S.vista !== "settori") S.vista = "home";
+  disegna();
+}
+function blocca(){ S.vista = "login"; S.foglio = null; S.err = ""; S.pin1 = null; disegna(); }
+
+async function copia(t){
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch(e){
+    const a = document.createElement("textarea"); a.value = t; a.setAttribute("readonly",""); a.style.position = "fixed"; a.style.opacity = "0";
+    document.body.appendChild(a); a.select(); a.setSelectionRange(0, t.length);
+    const ok = document.execCommand("copy"); a.remove(); return ok;
+  }
+}
+
+app.addEventListener("click", async ev => {
+  const b = ev.target.closest("[data-act]"); if(!b) return;
+  const a = b.dataset.act;
+  if(a === "momento"){ S.momento = b.dataset.m; S.aperto = null; S.vista = "settori"; disegna(); scrollTo(0,0); }
+  if(a === "home"){ S.vista = "home"; S.foglio = null; disegna(); }
+  if(a === "esci"){ blocca(); }
+  if(a === "dimenticato"){
+    if(!confirm("Senza il PIN i contatti non si possono riaprire. Vuoi cancellare tutti i contatti salvati e scegliere un PIN nuovo?")) return;
+    if(!confirm("Sicuro? I contatti cancellati non si recuperano.")) return;
+    scrivi(KD, null); scrivi(KP, null); S.contatti = []; blocca();
+  }
+  if(a === "apri"){ S.aperto = S.aperto === b.dataset.s ? null : b.dataset.s; disegna(); }
+  if(a === "piu"){ S.foglio = { tipo:"piu", s:b.dataset.s }; S.tipo = null; disegna(); }
+  if(a === "meno"){ S.foglio = { tipo:"meno", s:b.dataset.s }; disegna(); }
+  if(a === "chiudi"){ S.foglio = null; disegna(); }
+  if(a === "oggi"){ S.foglio = { tipo:"oggi" }; disegna(); }
+  if(a === "esporta"){ esporta(); }
+  if(a === "togli"){
+    const c = S.contatti.find(x => String(x.id) === b.dataset.id); if(!c) return;
+    if(!confirm(`Togliere ${c.nome} dallo storico? Non si recupera.`)) return;
+    try { await db.togli(c.id); S.contatti = S.contatti.filter(x => x !== c); disegna(); toast(`${c.nome}: tolto dallo storico`); }
+    catch(e){ toast("Non tolto: la memoria di Safari è piena o bloccata"); }
+  }
+  if(a === "tipo"){
+    S.tipo = b.dataset.t;
+    document.querySelectorAll(".chip").forEach(c => c.classList.toggle("on", c.dataset.t === S.tipo));
+    document.querySelector('[data-form="nuovo"] .btn').disabled = false;
+  }
+  if(a === "copia"){
+    const ok = await copia(testo(settore(b.dataset.s), S.momento));
+    b.textContent = ok ? "Copiato ✓" : "Tieni premuto sul testo per copiarlo";
+    setTimeout(() => { if(b.isConnected) b.textContent = "Copia messaggio"; }, 1800);
+  }
+  if(a === "no"){
+    const c = S.contatti.find(x => String(x.id) === b.dataset.id); if(!c) return;
+    const nuovo = c.esito === "no" ? "attesa" : "no";
+    b.disabled = true;
+    try { const r = await db.esito(c.id, nuovo); Object.assign(c, r || { esito:nuovo }); S.foglio = null; disegna();
+      toast(nuovo === "no" ? `${c.nome}: segnato no, non conta più` : `${c.nome}: torna a contare`); }
+    catch(e){ b.disabled = false; toast(e.message === "login" ? "Sessione scaduta: rientra" : "Non salvato: la memoria di Safari è piena o bloccata"); if(e.message === "login"){ S.vista = "login"; disegna(); } }
+  }
+});
+
+app.addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const f = ev.target, btn = f.querySelector('button[type="submit"]');
+  if(f.dataset.form === "pin"){
+    const v = f.pin.value.trim(), fase = f.dataset.fase;
+    S.err = "";
+    if(!/^\d{4,8}$/.test(v)){ S.err = "Il PIN è fatto di 4–8 cifre."; disegna(); return; }
+    if(fase === "nuovo"){ S.pin1 = v; disegna(); return; }
+    if(fase === "conferma"){
+      if(v !== S.pin1){ S.pin1 = null; S.err = "I due PIN non sono uguali: ricomincia."; disegna(); return; }
+      scrivi(KP, await impronta(v)); S.pin1 = null; await carica(); return;
+    }
+    if(await impronta(v) === leggi(KP)) await carica();
+    else { S.err = "PIN sbagliato."; disegna(); }
+  }
+  if(f.dataset.form === "nuovo"){
+    const nome = f.nome.value.trim(); if(!nome || !S.tipo) return;
+    btn.disabled = true;
+    try {
+      const c = await db.aggiungi({ momento:S.momento, settore:S.foglio.s, tipo:S.tipo, nome });
+      S.contatti.push(c); const sid = S.foglio.s; S.foglio = null; S.aperto = sid; disegna();
+      toast(`Salvato · ${settore(sid).nome} ${conta(sid, S.momento)}`);
+    } catch(e){
+      btn.disabled = false;
+      if(e.message === "login"){ toast("Sessione scaduta: rientra"); S.vista = "login"; S.foglio = null; disegna(); }
+      else toast("Non salvato: la memoria di Safari è piena o bloccata");
+    }
+  }
+});
+
+/* Uscendo dall'app si segna l'ora; tornando dopo più di 10 minuti chiede il PIN.
+   Tornando prima, ricarica solo i contatori (a mezzanotte ripartono da zero). */
+document.addEventListener("visibilitychange", () => {
+  const dentro = S.vista === "home" || S.vista === "settori";
+  if(document.hidden){ scrivi(KU, Date.now()); return; }
+  if(!dentro) return;
+  if(Date.now() - (leggi(KU) || 0) > BLOCCO) blocca();
+  else if(!S.foglio) carica();
+});
+
+S.vista = "login"; disegna();   // a ogni apertura: PIN
+</script>
+</body>
+</html>
