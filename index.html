@@ -108,6 +108,7 @@
   .cestino:active{background:var(--chip)}
   .ct{align-items:center}
   .totale{text-decoration:underline;text-underline-offset:3px}
+  .ore-campo{font-family:Fraunces,Georgia,serif;font-size:28px;font-weight:600;text-align:right;letter-spacing:.02em}
   .ris{margin-top:10px;padding-top:10px;border-top:1px solid var(--linea);font-size:15px}
   .ris b{font-family:Fraunces,Georgia,serif;font-size:22px;font-weight:600;margin-left:2px}
   /* Giorno e Sera accanto al settore: il colore dice quale è aperto */
@@ -342,8 +343,8 @@ function vFoglio(){
     <form class="sheet" data-form="ore" role="dialog" aria-label="Ore lavorate">
       <h3>Immobiliare</h3>
       <label class="lab" for="ore">Ore lavorate</label>
-      <input id="ore" name="ore" inputmode="decimal" placeholder="es. 1.30" autocomplete="off" required>
-      <div class="vuoto" style="padding:0">Ore.minuti: 1.30 è un'ora e mezza, 0.45 sono tre quarti d'ora.</div>
+      <input id="ore" name="ore" class="ore-campo" inputmode="numeric" placeholder="0,00" autocomplete="off" required>
+      <div class="vuoto" style="padding:0">Scrivi solo i numeri, entrano da destra: 1 diventa 0,01 · 15 diventa 0,15 · 130 diventa 1,30 (un'ora e mezza).</div>
       <div class="err">${esc(S.err)}</div>
       <button class="btn" type="submit">Salva</button>
       <button type="button" class="annulla" data-act="chiudi">Annulla</button>
@@ -464,6 +465,16 @@ app.addEventListener("click", async ev => {
   }
 });
 
+/* Campo ore: le cifre entrano da destra (1 → 0,01 · 15 → 0,15 · 130 → 1,30), al massimo 4 cifre */
+app.addEventListener("input", ev => {
+  const c = ev.target; if(c.id !== "ore") return;
+  const cifre = c.value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 4);
+  if(!cifre){ c.value = ""; return; }
+  const p = cifre.padStart(3, "0");
+  c.value = `${+p.slice(0, -2)},${p.slice(-2)}`;
+  c.setSelectionRange(c.value.length, c.value.length);
+});
+
 app.addEventListener("submit", async ev => {
   ev.preventDefault();
   const f = ev.target, btn = f.querySelector('button[type="submit"]');
@@ -481,7 +492,10 @@ app.addEventListener("submit", async ev => {
   }
   if(f.dataset.form === "ore"){
     const min = leggiOre(f.ore.value);
-    if(min === null){ S.err = "Scrivi le ore come 1.30 (minuti da 00 a 59, massimo 24 ore)."; disegna(); document.getElementById("ore").focus(); return; }
+    if(min === null){
+      const v = f.ore.value; S.err = "I minuti vanno da 00 a 59, al massimo 24 ore.";
+      disegna(); const c = document.getElementById("ore"); c.value = v; c.focus(); return;
+    }
     try { S.ore.push(await db.aggiungiOre(min)); S.err = ""; S.foglio = null; S.aperto = "immobiliare"; disegna(); toast(`Salvato · ${fmtOre(min)}`); }
     catch(e){ toast("Non salvato: la memoria di Safari è piena o bloccata"); }
   }
