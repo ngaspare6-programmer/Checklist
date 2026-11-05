@@ -108,6 +108,17 @@
   .cestino:active{background:var(--chip)}
   .ct{align-items:center}
   .totale{text-decoration:underline;text-underline-offset:3px}
+  .ris{margin-top:10px;padding-top:10px;border-top:1px solid var(--linea);font-size:15px}
+  .ris b{font-family:Fraunces,Georgia,serif;font-size:22px;font-weight:600;margin-left:2px}
+  /* Giorno e Sera accanto al settore: il colore dice quale è aperto */
+  .row{gap:6px;padding:10px 8px 10px 12px}
+  .nm{min-width:0}
+  .mom{display:flex;gap:4px;flex:none}
+  .pill{font-size:12px;font-weight:600;padding:7px 9px;border-radius:999px;background:rgba(27,35,64,.07);color:var(--ink)}
+  .pill.on.g{background:#FFD58A;color:#1B2340}
+  .pill.on.s{background:#1B2340;color:#F1EEFF}
+  .cnt{min-width:26px;font-size:24px}
+  .tondo{width:36px;height:36px;font-size:20px}
 
   .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1B2340;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;z-index:20;box-shadow:0 6px 20px rgba(0,0,0,.25);white-space:nowrap}
   body.v-sera .toast{background:#F1EEFF;color:#1B2340}
@@ -133,9 +144,11 @@ const SETTORI = [
     msg:"sono Gaspare, sviluppatore della zona. Ho creato un'app per fare il preventivo dell'arredamento dal telefono, stanza per stanza, a pezzi e misure, con i modelli presi dai cataloghi. Il cliente riceve il PDF prima che tu esca di casa sua. Sto chiedendo a qualche arredatore 15 minuti per un parere sincero: ti andrebbe di vederla?" },
   { id:"imprese", nome:"Imprese", sub:"più mestieri",
     msg:"sono Gaspare, sviluppatore della zona. Ho creato un'app per le imprese che fanno più lavori nella stessa casa: impianto elettrico, idraulica e arredamento entrano stanza per stanza in un preventivo unico, e il cliente lo riceve in PDF dal telefono. Sto chiedendo a qualche impresa 15 minuti per un parere sincero: posso farvela vedere?" },
-  { gruppo:"Siti" },
+  { gruppo:"" },
   { id:"siti", nome:"Siti", sub:"hotel, B&B, attività",
     msg:"sono Gaspare di GPN Lab. Ho guardato il vostro sito: [dettaglio vero]. Faccio siti nuovi e restyling per hotel e attività, pensati per portare prenotazioni dirette. Vi va se in 10 minuti vi faccio vedere un esempio di come potrebbe diventare il vostro?" },
+  { gruppo:"" },
+  { id:"immobiliare", nome:"Immobiliare", sub:"con Carlo · ore lavorate", ore:true },   // niente Giorno/Sera: solo il + per le ore
 ];
 const TIPI = ["Instagram","Facebook","WhatsApp","Telefono","Altro"];
 const saluto = m => m === "giorno" ? "Buongiorno" : "Buonasera";
@@ -144,7 +157,7 @@ function testo(s, m){ return `${saluto(m)}${s.nome_in ? " [Nome]" : ""}, ${s.msg
 /* ===== Dati: solo su questo telefono (memoria di Safari) =====
    Nel codice non c'è niente di privato: né contatti né PIN.
    Il PIN si sceglie alla prima apertura e sul telefono se ne salva solo l'impronta (SHA-256), non il numero. */
-const KD = "checklist-contatti", KP = "checklist-pin", KU = "checklist-uscita";
+const KD = "checklist-contatti", KP = "checklist-pin", KU = "checklist-uscita", KO = "checklist-ore-immobiliare";
 const BLOCCO = 10 * 60 * 1000;   // fuori dall'app più di 10 minuti → richiede il PIN
 function leggi(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } }
 function scrivi(k,v){ try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e){ return false; } }
@@ -160,6 +173,14 @@ const db = {
     const d = this.dati(); const c = d.find(x => x.id === id); if(c) c.esito = esito;
     if(!scrivi(KD, d)) throw new Error("memoria"); return c;
   },
+  ore(){ return leggi(KO) || []; },
+  async aggiungiOre(minuti){
+    const d = this.ore(); const n = { id:String(Date.now()), creato:new Date().toISOString(), minuti };
+    d.push(n); if(!scrivi(KO, d)) throw new Error("memoria"); return n;
+  },
+  async togliOre(id){
+    if(!scrivi(KO, this.ore().filter(x => x.id !== id))) throw new Error("memoria");
+  },
   async togli(id){
     const d = this.dati().filter(x => x.id !== id);
     if(!scrivi(KD, d)) throw new Error("memoria");
@@ -174,11 +195,16 @@ function csv(lista){
   for(const c of lista) righe.push([
     new Date(c.creato).toLocaleDateString("it-IT"), ora(c.creato), c.momento === "giorno" ? "Giorno" : "Sera",
     settore(c.settore)?.nome || c.settore, c.tipo, c.nome, c.esito === "no" ? "no" : "contattato" ]);
+  const ore = db.ore();
+  if(ore.length){   // sotto i contatti, un blocco a parte per le ore dell'Immobiliare
+    righe.push([], ["Immobiliare · ore lavorate"], ["Data","Ora","Ore lavorate"]);
+    for(const o of ore) righe.push([new Date(o.creato).toLocaleDateString("it-IT"), ora(o.creato), fmtOre(o.minuti)]);
+  }
   return "﻿" + righe.map(r => r.map(q).join(";")).join("\r\n");
 }
 async function esporta(){
   const lista = db.dati();
-  if(!lista.length){ toast("Nessun contatto da esportare"); return; }
+  if(!lista.length && !db.ore().length){ toast("Niente da esportare"); return; }
   const nome = `checklist-${dataFile()}.csv`;
   const file = new File([csv(lista)], nome, { type:"text/csv" });
   if(navigator.canShare && navigator.canShare({ files:[file] })){
@@ -195,14 +221,34 @@ async function impronta(pin){
 }
 
 /* ===== Stato ===== */
-const S = { vista:"attesa", momento:"giorno", aperto:null, contatti:[], foglio:null, tipo:null, err:"", pin1:null };
+/* Ore: si scrivono come ore.minuti (1.30 = un'ora e mezza; vanno bene anche 1,30 · 1:30 · 2) */
+function leggiOre(t){
+  const m = String(t).trim().replace(",", ".").replace(":", ".").match(/^(\d{1,2})(?:\.(\d{1,2}))?$/);
+  if(!m) return null;
+  const mm = m[2] === undefined ? 0 : (m[2].length === 1 ? +m[2] * 10 : +m[2]);   // 1.3 = 1.30
+  if(mm > 59) return null;
+  const tot = +m[1] * 60 + mm;
+  return tot > 0 && tot <= 24 * 60 ? tot : null;
+}
+const PAGA = 12;   // Immobiliare: paga oraria in euro
+const euro = n => n.toLocaleString("it-IT", { style:"currency", currency:"EUR" });
+function vTotale(){
+  const min = S.ore.reduce((t, o) => t + o.minuti, 0);
+  if(!min) return `<div class="ris">Ancora nessuna ora segnata.</div>`;
+  return `<div class="ris">${fmtOre(min)} × ${PAGA} €/h = <b>${euro(Math.round(min / 60 * PAGA * 100) / 100)}</b></div>`;
+}
+const fmtOre = min => `${Math.floor(min / 60)}.${String(min % 60).padStart(2, "0")} h`;
+const dataOra = iso => `${new Date(iso).toLocaleDateString("it-IT")} ${new Date(iso).toLocaleTimeString("it-IT", { hour:"2-digit", minute:"2-digit" })}`;
+
+const S = { vista:"attesa", mom:{}, aperto:null, contatti:[], ore:[], foglio:null, tipo:null, err:"", pin1:null };   // mom: Giorno o Sera scelto per ogni settore
 
 const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 const oggi = iso => new Date(iso).toDateString() === new Date().toDateString();
 const ora = iso => new Date(iso).toLocaleTimeString("it-IT", { hour:"2-digit", minute:"2-digit" });
 const giorno = iso => new Date(iso).toLocaleDateString("it-IT", { weekday:"short", day:"numeric", month:"short" });
-const diOggi = (sid, m) => S.contatti.filter(c => c.settore === sid && c.momento === m && oggi(c.creato));
-const conta = (sid, m) => diOggi(sid, m).filter(c => c.esito !== "no").length;
+const diOggi = sid => S.contatti.filter(c => c.settore === sid && oggi(c.creato));
+const conta = sid => diOggi(sid).filter(c => c.esito !== "no").length;
+const adesso = () => { const h = new Date().getHours(); return h >= 5 && h < 17 ? "giorno" : "sera"; };   // dalle 17 è sera
 const totale = m => S.contatti.filter(c => oggi(c.creato) && c.esito !== "no" && (!m || c.momento === m)).length;
 const settore = id => SETTORI.find(s => s.id === id);
 
@@ -217,11 +263,10 @@ function toast(t){
 const app = document.getElementById("app");
 function disegna(){
   const v = S.vista;
-  document.body.className = v === "settori" ? `v-${S.momento}` : (v === "home" ? "v-home" : "v-login");
-  document.querySelector('meta[name="theme-color"]').content = (v === "settori" && S.momento === "giorno") ? "#FFE8C2" : (v === "home" ? "#FFE3B3" : "#1B2340");
+  document.body.className = v === "settori" ? "v-giorno" : "v-login";
+  document.querySelector('meta[name="theme-color"]').content = v === "settori" ? "#FFE8C2" : "#1B2340";
   if(v === "attesa") app.innerHTML = `<div class="attesa">Checklist</div>`;
   if(v === "login") app.innerHTML = vLogin();
-  if(v === "home") app.innerHTML = vHome() + vFoglio();
   if(v === "settori") app.innerHTML = vSettori() + vFoglio();
 }
 
@@ -245,33 +290,39 @@ function vLogin(){
   </form></div>`;
 }
 
-function vHome(){
-  const d = new Date().toLocaleDateString("it-IT", { weekday:"short", day:"numeric", month:"short" });
-  const tg = totale("giorno"), ts = totale("sera");
-  return `<div class="home">
-    <div class="top"><span><b>Oggi</b> · ${esc(d)}</span><span><button class="link totale" data-act="oggi">${tg+ts} ${tg+ts===1?"contatto":"contatti"} ›</button> · <button class="link" data-act="esci">Blocca</button></span></div>
-    <button class="meta g" data-act="momento" data-m="giorno"><span class="inner"><span class="ic">☀︎</span><span><b>Giorno</b><small>${tg} ${tg===1?"contatto":"contatti"} oggi</small></span></span></button>
-    <button class="meta s" data-act="momento" data-m="sera"><span class="inner"><span class="ic">☾</span><span><b>Sera</b><small>${ts} ${ts===1?"contatto":"contatti"} oggi</small></span></span></button>
-  </div>`;
-}
-
 function vSettori(){
-  const m = S.momento;
+  const d = new Date().toLocaleDateString("it-IT", { weekday:"short", day:"numeric", month:"short" });
+  const t = totale();
   let h = `<div class="col">
-    <div class="top"><button class="link" data-act="home">‹ ${m === "giorno" ? "Giorno" : "Sera"}</button><span>${totale(m)} oggi</span></div>
-    <h2 class="saluto serif">${saluto(m)}.</h2>`;
+    <div class="top"><span><b>Oggi</b> · ${esc(d)}</span><span><button class="link totale" data-act="oggi">${t} ${t===1?"contatto":"contatti"} ›</button> · <button class="link" data-act="esci">Blocca</button></span></div>
+    <h2 class="saluto serif">${saluto(adesso())}.</h2>`;
   for(const s of SETTORI){
-    if(s.gruppo){ if(s.gruppo !== "Siti") h += `<div class="grp">${esc(s.gruppo)}</div>`; else h += `<div class="grp"> </div>`; continue; }
-    const c = conta(s.id, m), aperto = S.aperto === s.id;
+    if(s.gruppo !== undefined){ h += `<div class="grp">${s.gruppo ? esc(s.gruppo) : " "}</div>`; continue; }
+    if(s.ore){
+      const aperto = S.aperto === s.id, lista = S.ore.slice().reverse();
+      h += `<div class="settore">
+        <div class="row">
+          <button class="nm" data-act="apri" data-s="${s.id}" aria-expanded="${aperto}">${esc(s.nome)}<small>${esc(s.sub)}</small></button>
+          <button class="tondo piu" data-act="ore" aria-label="Aggiungi ore lavorate">+</button>
+        </div>
+        ${aperto ? `<div class="aperto">
+          <div class="msg">Paga oraria: ${PAGA} €/h<br><button class="copia" data-act="totale">Calcola prezzo finale</button>${S.totVisto ? vTotale() : ""}</div>
+          <div class="elenco">${lista.length ? lista.map(o => `<div class="ct"><span class="chi">${fmtOre(o.minuti)} · ${dataOra(o.creato)}</span><span class="t">${cestino({ id:o.id, nome:fmtOre(o.minuti) }, "togliOre")}</span></div>`).join("") : `<div class="vuoto">Ancora nessuna ora segnata.</div>`}</div></div>` : ""}
+      </div>`;
+      continue;
+    }
+    const c = conta(s.id), aperto = S.aperto === s.id, m = S.mom[s.id] || adesso();
+    const pill = (mm, nome) => `<button class="pill ${mm === "giorno" ? "g" : "s"} ${aperto && m === mm ? "on" : ""}" data-act="apri" data-s="${s.id}" data-m="${mm}" aria-pressed="${aperto && m === mm}">${nome}</button>`;
     h += `<div class="settore">
       <div class="row">
         <button class="nm" data-act="apri" data-s="${s.id}" aria-expanded="${aperto}">${esc(s.nome)}${s.sub ? `<small>${esc(s.sub)}</small>` : ""}</button>
+        <div class="mom">${pill("giorno","Giorno")}${pill("sera","Sera")}</div>
         <div class="cnt ${c ? "" : "z"}" aria-label="${c} contatti oggi">${c}</div>
         <button class="tondo meno" data-act="meno" data-s="${s.id}" aria-label="Risposta negativa">−</button>
         <button class="tondo piu" data-act="piu" data-s="${s.id}" aria-label="Nuovo contatto">+</button>
       </div>`;
     if(aperto){
-      const lista = diOggi(s.id, m).slice().reverse();
+      const lista = diOggi(s.id).slice().reverse();
       h += `<div class="aperto">
         <div class="msg">${esc(testo(s, m))}<br><button class="copia" data-act="copia" data-s="${s.id}">Copia messaggio</button></div>
         <div class="elenco">${lista.length ? lista.map(x => `<div class="ct ${x.esito === "no" ? "no" : ""}"><span class="chi">${esc(x.tipo)} · ${esc(x.nome)}</span><span class="t">${x.esito === "no" ? "no · " : ""}${ora(x.creato)}${x.esito === "no" ? cestino(x) : ""}</span></div>`).join("") : `<div class="vuoto">Ancora nessun contatto oggi.</div>`}</div>
@@ -282,10 +333,22 @@ function vSettori(){
   return h + `</div>`;
 }
 
-const cestino = c => `<button class="cestino" data-act="togli" data-id="${esc(c.id)}" aria-label="Togli ${esc(c.nome)} dallo storico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button>`;
+const cestino = (c, act = "togli") => `<button class="cestino" data-act="${act}" data-id="${esc(c.id)}" aria-label="Togli ${esc(c.nome)} dallo storico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button>`;
 
 function vFoglio(){
   if(!S.foglio) return "";
+  if(S.foglio.tipo === "ore"){
+    return `<div class="velo" data-act="chiudi"></div>
+    <form class="sheet" data-form="ore" role="dialog" aria-label="Ore lavorate">
+      <h3>Immobiliare</h3>
+      <label class="lab" for="ore">Ore lavorate</label>
+      <input id="ore" name="ore" inputmode="decimal" placeholder="es. 1.30" autocomplete="off" required>
+      <div class="vuoto" style="padding:0">Ore.minuti: 1.30 è un'ora e mezza, 0.45 sono tre quarti d'ora.</div>
+      <div class="err">${esc(S.err)}</div>
+      <button class="btn" type="submit">Salva</button>
+      <button type="button" class="annulla" data-act="chiudi">Annulla</button>
+    </form>`;
+  }
   if(S.foglio.tipo === "oggi"){
     const lista = S.contatti.filter(c => oggi(c.creato) && c.esito !== "no");
     return `<div class="velo" data-act="chiudi"></div>
@@ -301,7 +364,7 @@ function vFoglio(){
   if(S.foglio.tipo === "piu"){
     return `<div class="velo" data-act="chiudi"></div>
     <form class="sheet" data-form="nuovo" role="dialog" aria-label="Nuovo contatto">
-      <h3>Nuovo contatto · ${esc(s.nome)}</h3>
+      <h3>Nuovo contatto · ${esc(s.nome)} · ${S.foglio.m === "giorno" ? "Giorno" : "Sera"}</h3>
       <div class="lab">Tipo di contatto</div>
       <div class="chips">${TIPI.map(t => `<button type="button" class="chip ${S.tipo === t ? "on" : ""}" data-act="tipo" data-t="${t}">${t}</button>`).join("")}</div>
       <label class="lab" for="nome">Nome</label>
@@ -327,7 +390,7 @@ function vFoglio(){
 
 /* ===== Azioni ===== */
 async function carica(){
-  S.contatti = await db.elenco(); if(S.vista !== "settori") S.vista = "home";
+  S.contatti = await db.elenco(); S.ore = db.ore(); S.vista = "settori";
   disegna();
 }
 function blocca(){ S.vista = "login"; S.foglio = null; S.err = ""; S.pin1 = null; disegna(); }
@@ -344,19 +407,36 @@ async function copia(t){
 app.addEventListener("click", async ev => {
   const b = ev.target.closest("[data-act]"); if(!b) return;
   const a = b.dataset.act;
-  if(a === "momento"){ S.momento = b.dataset.m; S.aperto = null; S.vista = "settori"; disegna(); scrollTo(0,0); }
-  if(a === "home"){ S.vista = "home"; S.foglio = null; disegna(); }
   if(a === "esci"){ blocca(); }
   if(a === "dimenticato"){
     if(!confirm("Senza il PIN i contatti non si possono riaprire. Vuoi cancellare tutti i contatti salvati e scegliere un PIN nuovo?")) return;
     if(!confirm("Sicuro? I contatti cancellati non si recuperano.")) return;
-    scrivi(KD, null); scrivi(KP, null); S.contatti = []; blocca();
+    scrivi(KD, null); scrivi(KO, null); scrivi(KP, null); S.contatti = []; S.ore = []; blocca();
   }
-  if(a === "apri"){ S.aperto = S.aperto === b.dataset.s ? null : b.dataset.s; disegna(); }
-  if(a === "piu"){ S.foglio = { tipo:"piu", s:b.dataset.s }; S.tipo = null; disegna(); }
+  if(a === "totale"){ S.totVisto = true; disegna(); }
+  if(a === "togliOre"){
+    const o = S.ore.find(x => x.id === b.dataset.id); if(!o) return;
+    if(!confirm(`Togliere ${fmtOre(o.minuti)} del ${dataOra(o.creato)}? Non si recupera.`)) return;
+    try { await db.togliOre(o.id); S.ore = S.ore.filter(x => x !== o); disegna(); toast(`${fmtOre(o.minuti)}: tolte`); }
+    catch(e){ toast("Non tolto: la memoria di Safari è piena o bloccata"); }
+  }
+  if(a === "apri"){
+    const sid = b.dataset.s, m = b.dataset.m;
+    S.totVisto = false;
+    if(m){   // Giorno o Sera: apre con quel saluto; ritoccato, chiude
+      if(S.aperto === sid && (S.mom[sid] || adesso()) === m) S.aperto = null;
+      else { S.aperto = sid; S.mom[sid] = m; }
+    } else S.aperto = S.aperto === sid ? null : sid;   // nome: apre con l'ultimo scelto (o l'ora)
+    disegna();
+  }
+  if(a === "piu"){
+    const sid = b.dataset.s;
+    S.foglio = { tipo:"piu", s:sid, m:(S.aperto === sid && S.mom[sid]) || adesso() }; S.tipo = null; disegna();
+  }
   if(a === "meno"){ S.foglio = { tipo:"meno", s:b.dataset.s }; disegna(); }
   if(a === "chiudi"){ S.foglio = null; disegna(); }
   if(a === "oggi"){ S.foglio = { tipo:"oggi" }; disegna(); }
+  if(a === "ore"){ S.foglio = { tipo:"ore" }; S.err = ""; disegna(); document.getElementById("ore")?.focus(); }
   if(a === "esporta"){ esporta(); }
   if(a === "togli"){
     const c = S.contatti.find(x => String(x.id) === b.dataset.id); if(!c) return;
@@ -370,7 +450,7 @@ app.addEventListener("click", async ev => {
     document.querySelector('[data-form="nuovo"] .btn').disabled = false;
   }
   if(a === "copia"){
-    const ok = await copia(testo(settore(b.dataset.s), S.momento));
+    const ok = await copia(testo(settore(b.dataset.s), S.mom[b.dataset.s] || adesso()));
     b.textContent = ok ? "Copiato ✓" : "Tieni premuto sul testo per copiarlo";
     setTimeout(() => { if(b.isConnected) b.textContent = "Copia messaggio"; }, 1800);
   }
@@ -399,13 +479,19 @@ app.addEventListener("submit", async ev => {
     if(await impronta(v) === leggi(KP)) await carica();
     else { S.err = "PIN sbagliato."; disegna(); }
   }
+  if(f.dataset.form === "ore"){
+    const min = leggiOre(f.ore.value);
+    if(min === null){ S.err = "Scrivi le ore come 1.30 (minuti da 00 a 59, massimo 24 ore)."; disegna(); document.getElementById("ore").focus(); return; }
+    try { S.ore.push(await db.aggiungiOre(min)); S.err = ""; S.foglio = null; S.aperto = "immobiliare"; disegna(); toast(`Salvato · ${fmtOre(min)}`); }
+    catch(e){ toast("Non salvato: la memoria di Safari è piena o bloccata"); }
+  }
   if(f.dataset.form === "nuovo"){
     const nome = f.nome.value.trim(); if(!nome || !S.tipo) return;
     btn.disabled = true;
     try {
-      const c = await db.aggiungi({ momento:S.momento, settore:S.foglio.s, tipo:S.tipo, nome });
-      S.contatti.push(c); const sid = S.foglio.s; S.foglio = null; S.aperto = sid; disegna();
-      toast(`Salvato · ${settore(sid).nome} ${conta(sid, S.momento)}`);
+      const c = await db.aggiungi({ momento:S.foglio.m, settore:S.foglio.s, tipo:S.tipo, nome });
+      S.contatti.push(c); const sid = S.foglio.s; S.mom[sid] = S.foglio.m; S.foglio = null; S.aperto = sid; disegna();
+      toast(`Salvato · ${settore(sid).nome} ${conta(sid)}`);
     } catch(e){
       btn.disabled = false;
       if(e.message === "login"){ toast("Sessione scaduta: rientra"); S.vista = "login"; S.foglio = null; disegna(); }
