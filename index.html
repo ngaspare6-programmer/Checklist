@@ -296,7 +296,7 @@ function vSettori(){
   const t = totale();
   let h = `<div class="col">
     <div class="top"><span><b>Oggi</b> · ${esc(d)}</span><span><button class="link totale" data-act="oggi">${t} ${t===1?"contatto":"contatti"} ›</button> · <button class="link" data-act="esci">Blocca</button></span></div>
-    <h2 class="saluto serif">${saluto(adesso())}.</h2>`;
+    <h2 class="saluto serif">Checklist GPNLAB</h2>`;
   for(const s of SETTORI){
     if(s.gruppo !== undefined){ h += `<div class="grp">${s.gruppo ? esc(s.gruppo) : " "}</div>`; continue; }
     if(s.ore){
